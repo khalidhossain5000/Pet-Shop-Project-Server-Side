@@ -8,7 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r4vhlna.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -102,13 +102,47 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/pets',async (req,res)=>{
+      
+      const result=await petCollections.find({status:'approved'}).toArray()
+      res.send(result)
+    })
 
+    app.get('/admin/pets',async (req,res)=>{
+      
+      const result=await petCollections.find().toArray()
+      res.send(result)
+    })
+
+    //pet status approve api
+    app.patch('/admin/pets/:id/approve',async (req,res)=>{
+      const id=req.params.id
+      
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid pet id" });
+      }
+      const filter={_id:new ObjectId(id)}
+
+      const updatedDoc={
+        $set:{
+          status:'approved',
+          approvedAt: new Date()
+        }
+      }
+      const result=await petCollections.updateOne(filter,updatedDoc)
+      res.send(result)
+
+    })
     //BREED REALTED API
     app.post("/add-breeds", async (req, res) => {
       const breedData = req.body;
       const result = await breedCollections.insertOne(breedData);
       res.send(result);
     });
+    app.get('/breeds',async(req,res)=>{
+      const result=await breedCollections.find().toArray()
+      res.send(result)
+    })
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
