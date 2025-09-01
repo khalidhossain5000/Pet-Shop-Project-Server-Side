@@ -30,7 +30,7 @@ async function run() {
     const usersCollections = db.collection("Users");
     const productsCollections = db.collection("Products");
     const petCollections = db.collection("Pet");
-    const breedCollections=db.collection("Breeds")
+    const breedCollections = db.collection("Breeds");
     //DB AND COLLECTION ENDS
 
     //user info adding to the db
@@ -102,47 +102,80 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/pets',async (req,res)=>{
-      
-      const result=await petCollections.find({status:'approved'}).toArray()
-      res.send(result)
-    })
+    app.get("/pets", async (req, res) => {
+      const result = await petCollections
+        .find({ status: "approved" })
+        .toArray();
+      res.send(result);
+    });
 
-    app.get('/admin/pets',async (req,res)=>{
-      
-      const result=await petCollections.find().toArray()
-      res.send(result)
-    })
+    app.get("/admin/pets", async (req, res) => {
+      const result = await petCollections.find().toArray();
+      res.send(result);
+    });
 
     //pet status approve api
-    app.patch('/admin/pets/:id/approve',async (req,res)=>{
-      const id=req.params.id
-      
+    app.patch("/admin/pets/:id/approve", async (req, res) => {
+      const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
       }
-      const filter={_id:new ObjectId(id)}
+      const filter = { _id: new ObjectId(id) };
 
-      const updatedDoc={
-        $set:{
-          status:'approved',
-          approvedAt: new Date()
-        }
+      const updatedDoc = {
+        $set: {
+          status: "approved",
+          approvedAt: new Date(),
+        },
+      };
+      const result = await petCollections.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    //pet reject api
+    app.patch("/admin/pets/:id/reject", async (req, res) => {
+      const id = req.params.id;
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid pet id" });
+      }
+      const {rejectReason}  = req.body;
+      console.log(rejectReason,"reject reason")
+      // filter: 
+      const filter = { _id: new ObjectId(id) };
+
+      // updateDoc: 
+      const updatedDoc = {
+        $set: {
+          status: "rejected",
+          rejectReason: rejectReason,
+          rejectedAt: new Date(),
+        },
       }
       const result=await petCollections.updateOne(filter,updatedDoc)
       res.send(result)
+    });
 
+
+    app.delete('/admin/pets/:id',async (req,res)=>{
+      const id = req.params.id;
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid pet id" });
+      }
+      const filter = { _id: new ObjectId(id) };
+      const result=await petCollections.deleteOne(filter)
+      res.send(result)
     })
+
     //BREED REALTED API
     app.post("/add-breeds", async (req, res) => {
       const breedData = req.body;
       const result = await breedCollections.insertOne(breedData);
       res.send(result);
     });
-    app.get('/breeds',async(req,res)=>{
-      const result=await breedCollections.find().toArray()
-      res.send(result)
-    })
+    app.get("/breeds", async (req, res) => {
+      const result = await breedCollections.find().toArray();
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
