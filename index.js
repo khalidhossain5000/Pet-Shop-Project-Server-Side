@@ -30,6 +30,7 @@ async function run() {
     const usersCollections = db.collection("Users");
     const productsCollections = db.collection("Products");
     const petCollections = db.collection("Pet");
+    const breedCollections=db.collection("Breeds")
     //DB AND COLLECTION ENDS
 
     //user info adding to the db
@@ -98,6 +99,14 @@ async function run() {
     app.post("/add-pet", async (req, res) => {
       const petData = req.body;
       const result = await petCollections.insertOne(petData);
+      res.send(result);
+    });
+
+
+    //BREED REALTED API
+    app.post("/add-breeds", async (req, res) => {
+      const breedData = req.body;
+      const result = await breedCollections.insertOne(breedData);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
