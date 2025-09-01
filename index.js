@@ -29,6 +29,7 @@ async function run() {
     const db = client.db("Pet-Shop-Project");
     const usersCollections = db.collection("Users");
     const productsCollections = db.collection("Products");
+    const petCollections = db.collection("Pet");
     //DB AND COLLECTION ENDS
 
     //user info adding to the db
@@ -50,12 +51,10 @@ async function run() {
         // Insert new user
         const result = await usersCollections.insertOne(userInfo);
         if (result.insertedId) {
-          res
-            .status(201)
-            .json({
-              message: "User added successfully",
-              userId: result.insertedId,
-            });
+          res.status(201).json({
+            message: "User added successfully",
+            userId: result.insertedId,
+          });
         } else {
           res.status(500).json({ message: "Failed to add user" });
         }
@@ -73,23 +72,34 @@ async function run() {
       res.send({ role: user.role || "user" });
     });
 
+    //  products realted api
+    app.post("/add-product", async (req, res) => {
+      const productInfo = req.body;
+      console.log(productInfo);
+      const result = await productsCollections.insertOne(productInfo);
+      res.send(result);
+    });
 
+    // Get first 9 products from productsCollections
+    app.get("/homepage/products", async (req, res) => {
+      try {
+        const products = await productsCollections.find().limit(9).toArray();
+        res.send(products);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch products" });
+      }
+    });
 
-
-
-//  products realted api
-app.get("/add-product",async(req,res)=>{
-  const productInfo=req.body;
-  console.log(productInfo);
-  const result=await productsCollections.insertOne(productInfo);
-  res.send(result);
-})
-
-
-
-
-
-
+    app.get("/products", async (req, res) => {
+      const products = await productsCollections.find().toArray();
+      res.send(products);
+    });
+    //PET UPLOAD API TO THE DB
+    app.post("/add-pet", async (req, res) => {
+      const petData = req.body;
+      const result = await petCollections.insertOne(petData);
+      res.send(result);
+    });
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
