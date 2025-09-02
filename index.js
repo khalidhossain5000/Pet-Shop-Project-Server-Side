@@ -33,7 +33,7 @@ async function run() {
     const breedCollections = db.collection("Breeds");
     //DB AND COLLECTION ENDS
 
-    //user info adding to the db
+    //user REALATED API STARTS HERE
 
     // API endpoint to add user info
     app.post("/users", async (req, res) => {
@@ -65,14 +65,30 @@ async function run() {
       }
     });
 
-    //getting user role from the db
+    // user role from the db
     app.get("/users/role/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollections.findOne({ email });
 
       res.send({ role: user.role || "user" });
     });
-
+    //getting all user info for admin panel
+    app.get("/admin/users", async (req, res) => {
+      const users = await usersCollections.find().toArray();
+      res.send(users);
+    });
+    //make admin api starts here
+    app.patch("/admin/users/:userId/make-admin",async(req,res)=>{
+      const userId=req.params.userId
+      const filter={_id:new ObjectId(userId)}
+      const updatedDoc={
+        $set:{
+          role:'admin'
+        }
+      }
+      const result= await usersCollections.updateOne(filter,updatedDoc)
+      res.send(result)
+    })
     //  products realted api
     app.post("/add-product", async (req, res) => {
       const productInfo = req.body;
@@ -92,7 +108,7 @@ async function run() {
       }
     });
 
-    app.get("/admin/products", async (req, res) => {
+    app.get("/products", async (req, res) => {
       const products = await productsCollections.find().toArray();
       res.send(products);
     });
@@ -150,33 +166,32 @@ async function run() {
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
       }
-      const {rejectReason}  = req.body;
-      console.log(rejectReason,"reject reason")
-      // filter: 
+      const { rejectReason } = req.body;
+      console.log(rejectReason, "reject reason");
+      // filter:
       const filter = { _id: new ObjectId(id) };
 
-      // updateDoc: 
+      // updateDoc:
       const updatedDoc = {
         $set: {
           status: "rejected",
           rejectReason: rejectReason,
           rejectedAt: new Date(),
         },
-      }
-      const result=await petCollections.updateOne(filter,updatedDoc)
-      res.send(result)
+      };
+      const result = await petCollections.updateOne(filter, updatedDoc);
+      res.send(result);
     });
 
-
-    app.delete('/admin/pets/:id',async (req,res)=>{
+    app.delete("/admin/pets/:id", async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
       }
       const filter = { _id: new ObjectId(id) };
-      const result=await petCollections.deleteOne(filter)
-      res.send(result)
-    })
+      const result = await petCollections.deleteOne(filter);
+      res.send(result);
+    });
 
     //BREED REALTED API
     app.post("/add-breeds", async (req, res) => {
