@@ -31,6 +31,7 @@ async function run() {
     const productsCollections = db.collection("Products");
     const petCollections = db.collection("Pet");
     const breedCollections = db.collection("Breeds");
+    const cartCollections = db.collection("Carts");
     //DB AND COLLECTION ENDS
 
     //user REALATED API STARTS HERE
@@ -78,17 +79,37 @@ async function run() {
       res.send(users);
     });
     //make admin api starts here
-    app.patch("/admin/users/:userId/make-admin",async(req,res)=>{
-      const userId=req.params.userId
-      const filter={_id:new ObjectId(userId)}
-      const updatedDoc={
-        $set:{
-          role:'admin'
-        }
-      }
-      const result= await usersCollections.updateOne(filter,updatedDoc)
-      res.send(result)
-    })
+    app.patch("/admin/users/:userId/make-admin", async (req, res) => {
+      const userId = req.params.userId;
+      const filter = { _id: new ObjectId(userId) };
+      const updatedDoc = {
+        $set: {
+          role: "admin",
+        },
+      };
+      const result = await usersCollections.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+
+    //Remove  admin api starts here
+    app.patch("/admin/users/:userId/remove-admin", async (req, res) => {
+      const userId = req.params.userId;
+      const filter = { _id: new ObjectId(userId) };
+      const updatedDoc = {
+        $set: {
+          role: "user",
+        },
+      };
+      const result = await usersCollections.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+    //delte user
+    app.delete("/admin/users/:userId", async (req, res) => {
+      const userId = req.params.userId;
+      const filter = { _id: new ObjectId(userId) };
+      const result = await usersCollections.deleteOne(filter);
+      res.send(result);
+    });
     //  products realted api
     app.post("/add-product", async (req, res) => {
       const productInfo = req.body;
@@ -203,6 +224,65 @@ async function run() {
       const result = await breedCollections.find().toArray();
       res.send(result);
     });
+
+    //CART RELATED API STARTS HERE
+    app.post("/cart", async (req, res) => {
+      const { email, item } = req.body;
+      
+
+      if (!email || !item) {
+        return res
+          .send(400)
+          .json({ success: false, message: "Missing email or productId" });
+      }
+      const existingCart = await cartCollections.findOne({ email });
+     
+
+      if (existingCart) {
+        // 3a️⃣ check if product already exists
+        const existingItem = existingCart.items.find(
+          (i) => i.petId === item.petId
+        );
+console.log(existingItem,"thjis is exsiting items here "
+);
+        if (existingItem) {
+          // 3b️⃣ product already in cart → increase quantity
+          existingItem.quantity += 1;
+        } else {
+          // 3c️⃣ product not in cart → push new item
+          existingCart.items.push({
+            ...item,
+            quantity: 1,
+          });
+        }
+
+        // 3d️⃣ update cart in DB
+        await cartCollections.updateOne(
+          { email },
+          { $set: { items: existingCart.items } }
+        );
+
+        // 3e️⃣ send updated cart back to frontend
+        return res.json(existingCart.items);
+      } else {
+        // 4️⃣ if user has no cart → create new cart
+        const newCart = {
+          email,
+          items: [
+            {
+              ...item,
+              quantity: 1,
+            },
+          ],
+        };
+
+        await cartCollections.insertOne(newCart);
+
+        // 4a️⃣ send new cart to frontend
+        return res.json(newCart.items);
+      }
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
