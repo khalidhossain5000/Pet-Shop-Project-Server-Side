@@ -226,60 +226,111 @@ async function run() {
     });
 
     //CART RELATED API STARTS HERE
+    //     app.post("/cart", async (req, res) => {
+    //       const { email, item } = req.body;
+
+    //       if (!email || !item) {
+    //         return res
+    //           .send(400)
+    //           .json({ success: false, message: "Missing email or productId" });
+    //       }
+    //       const existingCart = await cartCollections.findOne({ email });
+
+    //       if (existingCart) {
+    //         // 3a️⃣ check if product already exists
+    //         const existingItem = existingCart.items.find(
+    //           (i) => i.petId === item.petId
+    //         );
+    // console.log(existingItem,"thjis is exsiting items here "
+    // );
+    //         if (existingItem) {
+    //           // 3b️⃣ product already in cart → increase quantity
+    //           existingItem.quantity += 1;
+    //         } else {
+    //           // 3c️⃣ product not in cart → push new item
+    //           existingCart.items.push({
+    //             ...item,
+    //             quantity: 1,
+    //           });
+    //         }
+
+    //         // 3d️⃣ update cart in DB
+    //         await cartCollections.updateOne(
+    //           { email },
+    //           { $set: { items: existingCart.items } }
+    //         );
+
+    //         // 3e️⃣ send updated cart back to frontend
+    //         return res.json(existingCart.items);
+    //       } else {
+    //         // 4️⃣ if user has no cart → create new cart
+    //         const newCart = {
+    //           email,
+    //           items: [
+    //             {
+    //               ...item,
+    //               quantity: 1,
+    //             },
+    //           ],
+    //         };
+
+    //         await cartCollections.insertOne(newCart);
+
+    //         // 4a️⃣ send new cart to frontend
+    //         return res.json(newCart.items);
+    //       }
+    //     });
     app.post("/cart", async (req, res) => {
       const { email, item } = req.body;
-      
 
       if (!email || !item) {
         return res
-          .send(400)
-          .json({ success: false, message: "Missing email or productId" });
+          .status(400)
+          .json({ success: false, message: "Missing email or item" });
       }
+
       const existingCart = await cartCollections.findOne({ email });
-     
 
       if (existingCart) {
-        // 3a️⃣ check if product already exists
-        const existingItem = existingCart.items.find(
+        // 3a️⃣ Check if pet already exists in the cart
+        const existingPet = existingCart.items.find(
           (i) => i.petId === item.petId
         );
-console.log(existingItem,"thjis is exsiting items here "
-);
-        if (existingItem) {
-          // 3b️⃣ product already in cart → increase quantity
-          existingItem.quantity += 1;
+
+        if (existingPet) {
+          // 3b️⃣ Pet already in cart → send a response without updating the cart
+          return res
+            .status(200)
+            .json({
+              status: "exists",
+              message: "Pet is already in your cart.",
+            });
         } else {
-          // 3c️⃣ product not in cart → push new item
-          existingCart.items.push({
-            ...item,
-            quantity: 1,
-          });
+          // 3c️⃣ Pet not in cart → push the new item to the cart
+          existingCart.items.push(item);
         }
 
-        // 3d️⃣ update cart in DB
+        // 3d️⃣ Update the cart in the database
         await cartCollections.updateOne(
           { email },
           { $set: { items: existingCart.items } }
         );
 
-        // 3e️⃣ send updated cart back to frontend
-        return res.json(existingCart.items);
+        // 3e️⃣ Send updated cart data back to the frontend
+        return res
+          .status(200)
+          .json({ status: "added", items: existingCart.items });
       } else {
-        // 4️⃣ if user has no cart → create new cart
+        // 4️⃣ If user has no cart → create a new cart
         const newCart = {
           email,
-          items: [
-            {
-              ...item,
-              quantity: 1,
-            },
-          ],
+          items: [item],
         };
 
         await cartCollections.insertOne(newCart);
 
-        // 4a️⃣ send new cart to frontend
-        return res.json(newCart.items);
+        // 4a️⃣ Send new cart to the frontend
+        return res.status(200).json({ status: "added", items: newCart.items });
       }
     });
 
