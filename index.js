@@ -299,12 +299,10 @@ async function run() {
 
         if (existingPet) {
           // 3b️⃣ Pet already in cart → send a response without updating the cart
-          return res
-            .status(200)
-            .json({
-              status: "exists",
-              message: "Pet is already in your cart.",
-            });
+          return res.status(200).json({
+            status: "exists",
+            message: "Pet is already in your cart.",
+          });
         } else {
           // 3c️⃣ Pet not in cart → push the new item to the cart
           existingCart.items.push(item);
@@ -334,6 +332,8 @@ async function run() {
       }
     });
 
+    //cart item delte api starts here
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
