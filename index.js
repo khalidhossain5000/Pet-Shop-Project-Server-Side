@@ -256,6 +256,22 @@ async function run() {
     });
 
     //cart item delte api starts here
+    app.delete("/carts/:email/:petId", async (req, res) => {
+      try {
+        const userEmail = req.params.email;
+        const petId = req.params.petId;
+
+        const result = await cartCollections.updateOne(
+          { userEmail },
+          { $pull: { cartItemInfo: { petId: petId } } }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
