@@ -226,12 +226,35 @@ async function run() {
     });
 
     //CART RELATED API STARTS HERE
-    app.post('/carts', async (req, res) => {
+    app.post("/carts", async (req, res) => {
       const cartData = req.body;
-      const result = await cartCollections.insertOne(cartData);
+      const { userEmail, cartItemInfo } = req.body;
+      console.log(cartData, "this is cart data", userEmail, cartItemInfo);
+      // Update existing cart document for user
+      const result = await cartCollections.updateOne(
+        { userEmail }, // filter by user
+        { $set: { cartItemInfo: cartItemInfo } }, // overwrite existing cartItemInfo
+        { upsert: true } // create if not exists
+      );
       res.send(result);
-    })
-    
+    });
+
+    //USERS CART ITEM GETTING API
+    app.get("/carts", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+        if (!userEmail)
+          return res.status(400).json({ message: "Email query missing" });
+
+        const cartItems = await cartCollections.find({ userEmail }).toArray();
+
+        res.send(cartItems);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "this is error Server error" });
+      }
+    });
+
     //cart item delte api starts here
 
     // Send a ping to confirm a successful connection
