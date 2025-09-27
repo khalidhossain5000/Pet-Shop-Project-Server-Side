@@ -306,6 +306,13 @@ async function run() {
         res.status(500).json({ message: "Server error" });
       }
     })
+
+  app.get('/payments/orders',async(req,res)=>{
+    const result=await paymentCollections.find().toArray();
+    res.send(result);
+  })
+
+
     //STRIPE PAYMENT RELATED ALL API ENDS
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
