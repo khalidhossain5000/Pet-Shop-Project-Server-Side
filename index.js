@@ -8,6 +8,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const stripe = require("stripe")(process.env.STRIPE_KEY);
+
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.r4vhlna.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -32,6 +34,7 @@ async function run() {
     const petCollections = db.collection("Pet");
     const breedCollections = db.collection("Breeds");
     const cartCollections = db.collection("Carts");
+    const paymentCollections = db.collection("Payments");
     //DB AND COLLECTION ENDS
 
     //user REALATED API STARTS HERE
@@ -272,7 +275,38 @@ async function run() {
         res.status(500).send({ message: "Server error" });
       }
     });
-
+    //STRIPE PAYMENT RELATED ALL API STARTS
+    app.post("/create-payment-intent", async (req, res) => {
+      try {
+        const { amount } = req.body;
+        if (!amount)
+          return res.status(400).json({ message: "Amount is required" });
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+        res.send({
+          clientSecret: paymentIntent.client_secret,
+        })
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+    //saving payment info in the db
+    app.post('/payments',async(req,res)=>{
+      try{
+        const paymentData = req.body;
+        const result = await paymentCollections.insertOne(paymentData);
+        res.send(result);
+      }
+      catch(error){
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+      }
+    })
+    //STRIPE PAYMENT RELATED ALL API ENDS
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
