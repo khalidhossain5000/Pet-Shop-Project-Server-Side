@@ -288,31 +288,78 @@ async function run() {
         });
         res.send({
           clientSecret: paymentIntent.client_secret,
-        })
+        });
       } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
       }
     });
     //saving payment info in the db
-    app.post('/payments',async(req,res)=>{
-      try{
+    app.post("/payments", async (req, res) => {
+      try {
         const paymentData = req.body;
         const result = await paymentCollections.insertOne(paymentData);
         res.send(result);
-      }
-      catch(error){
+      } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Server error" });
       }
-    })
+    });
 
-  app.get('/payments/orders',async(req,res)=>{
-    const result=await paymentCollections.find().toArray();
-    res.send(result);
-  })
+    app.get("/payments/orders", async (req, res) => {
+      const result = await paymentCollections.find().toArray();
+      res.send(result);
+    });
+    // Update Order Status API
+    app.patch("/orders/:id/status", async (req, res) => {
+      console.log(req.params.id, "order id", req.body.status);
+      try {
+        const orderId = req.params.id;
+        const { status } = req.body;
 
+        const validStatuses = [
+          "Received",
+          "Processing",
+          "Shipped",
+          "Delivered",
+        ];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({ error: "Invalid status value" });
+        }
 
+        const result = await paymentCollections.updateOne(
+          { _id: new ObjectId(orderId) },
+          { $set: { orderStatus: status } }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        res.json({ message: "Order status updated successfully", status });
+      } catch (error) {
+        console.error("Error updating order:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
+    });
+    app.delete("/orders/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        console.log('this is id', id)
+        const result = await paymentCollections.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).json({ message: "Order not found" });
+        }
+
+        res.json({ success: true, message: "Order deleted successfully" });
+      } catch (error) {
+        console.error("Error deleting order:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
     //STRIPE PAYMENT RELATED ALL API ENDS
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
