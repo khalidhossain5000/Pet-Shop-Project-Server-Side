@@ -43,7 +43,7 @@ async function run() {
     app.post("/users", async (req, res) => {
       try {
         const userInfo = req.body;
-        console.log(userInfo);
+       
 
         // Check if user already exists by email
         const existingUser = await usersCollections.findOne({
@@ -116,7 +116,7 @@ async function run() {
     //  products realted api
     app.post("/add-product", async (req, res) => {
       const productInfo = req.body;
-      console.log(productInfo);
+     
       const result = await productsCollections.insertOne(productInfo);
       res.send(result);
     });
@@ -191,7 +191,7 @@ async function run() {
         return res.status(400).send({ message: "Invalid pet id" });
       }
       const { rejectReason } = req.body;
-      console.log(rejectReason, "reject reason");
+    
       // filter:
       const filter = { _id: new ObjectId(id) };
 
@@ -232,7 +232,7 @@ async function run() {
     app.post("/carts", async (req, res) => {
       const cartData = req.body;
       const { userEmail, cartItemInfo } = req.body;
-      console.log(cartData, "this is cart data", userEmail, cartItemInfo);
+      
       // Update existing cart document for user
       const result = await cartCollections.updateOne(
         { userEmail }, // filter by user
@@ -246,7 +246,7 @@ app.delete("/api/cart/clear/:userEmail", async (req, res) => {
   try {
     const userEmail = req.params.userEmail;
     const result = await cartCollections.deleteMany({ userEmail });
-console.log(userEmail)
+
     res.json({
       success: true,
       message: `${result.deletedCount} cart item(s) deleted`,
@@ -326,7 +326,7 @@ console.log(userEmail)
     });
     // Update Order Status API
     app.patch("/orders/:id/status", async (req, res) => {
-      console.log(req.params.id, "order id", req.body.status);
+      
       try {
         const orderId = req.params.id;
         const { status } = req.body;
@@ -359,7 +359,7 @@ console.log(userEmail)
     app.delete("/orders/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        console.log('this is id', id)
+     
         const result = await paymentCollections.deleteOne({
           _id: new ObjectId(id),
         });
