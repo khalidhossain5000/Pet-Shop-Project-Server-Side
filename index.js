@@ -241,7 +241,21 @@ async function run() {
       );
       res.send(result);
     });
-
+//delte login user carts after payment success
+app.delete("/api/cart/clear/:userEmail", async (req, res) => {
+  try {
+    const userEmail = req.params.userEmail;
+    const result = await cartCollections.deleteMany({ userEmail });
+console.log(userEmail)
+    res.json({
+      success: true,
+      message: `${result.deletedCount} cart item(s) deleted`,
+    });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
     //USERS CART ITEM GETTING API
     app.get("/carts", async (req, res) => {
       try {
