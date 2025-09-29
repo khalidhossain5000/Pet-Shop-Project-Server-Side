@@ -43,7 +43,6 @@ async function run() {
     app.post("/users", async (req, res) => {
       try {
         const userInfo = req.body;
-       
 
         // Check if user already exists by email
         const existingUser = await usersCollections.findOne({
@@ -116,7 +115,7 @@ async function run() {
     //  products realted api
     app.post("/add-product", async (req, res) => {
       const productInfo = req.body;
-     
+
       const result = await productsCollections.insertOne(productInfo);
       res.send(result);
     });
@@ -165,20 +164,20 @@ async function run() {
       const result = await petCollections.find().toArray();
       res.send(result);
     });
-// New Arrival Pets API
-app.get("/pets/new-arrivals", async (req, res) => {
-  try {
-    const pets = await petCollections
-      .find()
-      .sort({ _id: -1 }) // latest first
-      .limit(6)
-      .toArray();
+    // New Arrival Pets API
+    app.get("/pets/new-arrivals", async (req, res) => {
+      try {
+        const pets = await petCollections
+          .find()
+          .sort({ _id: -1 }) // latest first
+          .limit(6)
+          .toArray();
 
-    res.send(pets);
-  } catch (error) {
-    res.status(500).send({ message: "Error fetching new arrivals", error });
-  }
-});
+        res.send(pets);
+      } catch (error) {
+        res.status(500).send({ message: "Error fetching new arrivals", error });
+      }
+    });
 
     //pet status approve api
     app.patch("/admin/pets/:id/approve", async (req, res) => {
@@ -205,7 +204,7 @@ app.get("/pets/new-arrivals", async (req, res) => {
         return res.status(400).send({ message: "Invalid pet id" });
       }
       const { rejectReason } = req.body;
-    
+
       // filter:
       const filter = { _id: new ObjectId(id) };
 
@@ -246,7 +245,7 @@ app.get("/pets/new-arrivals", async (req, res) => {
     app.post("/carts", async (req, res) => {
       const cartData = req.body;
       const { userEmail, cartItemInfo } = req.body;
-      
+
       // Update existing cart document for user
       const result = await cartCollections.updateOne(
         { userEmail }, // filter by user
@@ -255,21 +254,21 @@ app.get("/pets/new-arrivals", async (req, res) => {
       );
       res.send(result);
     });
-//delte login user carts after payment success
-app.delete("/api/cart/clear/:userEmail", async (req, res) => {
-  try {
-    const userEmail = req.params.userEmail;
-    const result = await cartCollections.deleteMany({ userEmail });
+    //delte login user carts after payment success
+    app.delete("/api/cart/clear/:userEmail", async (req, res) => {
+      try {
+        const userEmail = req.params.userEmail;
+        const result = await cartCollections.deleteMany({ userEmail });
 
-    res.json({
-      success: true,
-      message: `${result.deletedCount} cart item(s) deleted`,
+        res.json({
+          success: true,
+          message: `${result.deletedCount} cart item(s) deleted`,
+        });
+      } catch (error) {
+        console.error("Error clearing cart:", error);
+        res.status(500).json({ message: "Server error" });
+      }
     });
-  } catch (error) {
-    console.error("Error clearing cart:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
     //USERS CART ITEM GETTING API
     app.get("/carts", async (req, res) => {
       try {
@@ -338,9 +337,44 @@ app.delete("/api/cart/clear/:userEmail", async (req, res) => {
       const result = await paymentCollections.find().toArray();
       res.send(result);
     });
+    //GETTING LOG IN USER PAYMENT/ORDER DATA
+    app.get("/payments/specific/order", async (req, res) => {
+      const email = req.query.email;
+      console.log("thi sis user email", email);
+      if (!email)
+        return res.status(400).json({ message: "Email query missing" });
+      const result = await paymentCollections.find({ email }).toArray();
+      res.send(result);
+    });
+    // GET /users/orders/count?email=pet@admin.com
+    app.get("/users/orders/count", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+
+        if (!userEmail) {
+          return res.status(400).json({ message: "Email query missing" });
+        }
+
+        // MongoDB aggregation
+        const result = await paymentCollections
+          .aggregate([
+            { $match: { email: userEmail } }, // filter by user email
+            { $count: "totalOrders" }, // count matching documents
+          ])
+          .toArray();
+
+        // if no order
+        const totalOrders = result.length > 0 ? result[0].totalOrders : 0;
+
+        res.json({ totalOrders });
+      } catch (error) {
+        console.error("Error fetching total orders:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
     // Update Order Status API
     app.patch("/orders/:id/status", async (req, res) => {
-      
       try {
         const orderId = req.params.id;
         const { status } = req.body;
@@ -373,7 +407,7 @@ app.delete("/api/cart/clear/:userEmail", async (req, res) => {
     app.delete("/orders/:id", async (req, res) => {
       try {
         const id = req.params.id;
-     
+
         const result = await paymentCollections.deleteOne({
           _id: new ObjectId(id),
         });
