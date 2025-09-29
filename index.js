@@ -346,29 +346,30 @@ async function run() {
       const result = await paymentCollections.find({ email }).toArray();
       res.send(result);
     });
-    // GET /users/orders/count?email=pet@admin.com
-    app.get("/users/orders/count", async (req, res) => {
+    app.get("/payments/order-stats", async (req, res) => {
       try {
         const userEmail = req.query.email;
-
         if (!userEmail) {
           return res.status(400).json({ message: "Email query missing" });
         }
 
-        // MongoDB aggregation
-        const result = await paymentCollections
-          .aggregate([
-            { $match: { email: userEmail } }, // filter by user email
-            { $count: "totalOrders" }, // count matching documents
-          ])
-          .toArray();
+        // Count total orders for user
+        const totalOrders = await paymentCollections.countDocuments({
+          email: userEmail,
+        });
 
-        // if no order
-        const totalOrders = result.length > 0 ? result[0].totalOrders : 0;
+        // Count delivered orders for user
+        const deliveredOrders = await paymentCollections.countDocuments({
+          email: userEmail,
+          orderStatus: "Delivered",
+        });
 
-        res.json({ totalOrders });
+        res.json({
+          totalOrders,
+          deliveredOrders,
+        });
       } catch (error) {
-        console.error("Error fetching total orders:", error);
+        console.error("Error fetching order stats:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
