@@ -165,6 +165,20 @@ async function run() {
       const result = await petCollections.find().toArray();
       res.send(result);
     });
+// New Arrival Pets API
+app.get("/pets/new-arrivals", async (req, res) => {
+  try {
+    const pets = await petCollections
+      .find()
+      .sort({ _id: -1 }) // latest first
+      .limit(6)
+      .toArray();
+
+    res.send(pets);
+  } catch (error) {
+    res.status(500).send({ message: "Error fetching new arrivals", error });
+  }
+});
 
     //pet status approve api
     app.patch("/admin/pets/:id/approve", async (req, res) => {
