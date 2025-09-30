@@ -105,6 +105,29 @@ async function run() {
       const result = await usersCollections.updateOne(filter, updatedDoc);
       res.send(result);
     });
+    // PATCH API using app.patch
+    app.patch("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const { name, profilePic } = req.body;
+
+      if (!email) return res.status(400).json({ error: "Email is required" });
+
+      try {
+        const result = await usersCollections.updateOne(
+          { email: email },
+          { $set: { name, profilePic } }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({ message: "User updated successfully", result });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
+      }
+    });
     //delte user
     app.delete("/admin/users/:userId", async (req, res) => {
       const userId = req.params.userId;
@@ -370,6 +393,64 @@ async function run() {
         });
       } catch (error) {
         console.error("Error fetching order stats:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+    //DAY WISE WEEKLY ORDER COUNT
+    app.get("/orders/day-wise-count", async (req, res) => {
+      try {
+        const userEmail = req.query.email;
+        if (!userEmail)
+          return res.status(400).json({ message: "Email query missing" });
+
+        const pipeline = [
+          { $match: { email: userEmail } },
+          {
+            $addFields: {
+              orderDateObj: { $dateFromString: { dateString: "$orderDate" } },
+            },
+          },
+          {
+            $group: {
+              _id: { $dayOfWeek: "$orderDateObj" }, // 1=Sunday, 2=Monday ...
+              totalOrders: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ];
+
+        const result = await paymentCollections.aggregate(pipeline).toArray();
+        res.status(200).json(result);
+      } catch (err) {
+        console.error("Error fetching day-wise order count:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+    //PET CATEGORY COUNT API
+    app.get("/pets/category-count", async (req, res) => {
+      try {
+        const pipeline = [
+         
+          { $match: { status: "approved" } },
+
+          // . group by petCategory
+          {
+            $group: {
+              _id: "$petCategory", // Category name
+              count: { $sum: 1 }, // category wise pet count
+            },
+          },
+
+          // ৩. sort by count descending (optional)
+          { $sort: { count: -1 } },
+        ];
+
+        const result = await petCollections.aggregate(pipeline).toArray();
+
+        res.status(200).json(result);
+      } catch (err) {
+        console.error("Error fetching pet category count:", err);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
