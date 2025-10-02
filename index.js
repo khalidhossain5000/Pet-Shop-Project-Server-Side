@@ -36,7 +36,21 @@ async function run() {
     const cartCollections = db.collection("Carts");
     const paymentCollections = db.collection("Payments");
     //DB AND COLLECTION ENDS
-
+    //CUSTOM MIDDLEWARE STARTED
+    const verifyFbToken=(req,res,next)=>{
+      const authHeaders=req.headers.authorization
+      console.log(authHeaders,'this is inside verifyFbToken')
+      if(!authHeaders){
+        return res.status(401).json({message:"unauthorized access"})
+      }
+      const token=authHeaders.split(" ")[1]
+      if(!token){
+        return res.status(401).json({message:"unauthorized access"})
+      }
+      //verify the token 
+      next()
+    }
+    //CUSTOM MIDDLEWARE ENDS
     //user REALATED API STARTS HERE
 
     // API endpoint to add user info
@@ -154,7 +168,7 @@ async function run() {
       }
     });
 
-    app.get("/products", async (req, res) => {
+    app.get("/products",verifyFbToken, async (req, res) => {
       const products = await productsCollections.find().toArray();
       res.send(products);
     });
@@ -426,12 +440,40 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
+    app.get("/api/orders/status-ratio", async (req, res) => {
+      try {
+        // Aggregate to get status-wise count
+        const result = await paymentCollections
+          .aggregate([
+            {
+              $group: {
+                _id: "$orderStatus",
+                count: { $sum: 1 },
+              },
+            },
+          ])
+          .toArray();
 
+        // calculate total orders
+        const total = result.reduce((sum, r) => sum + r.count, 0);
+
+        // map to include percentage
+        const ratio = result.map((r) => ({
+          status: r._id,
+          count: r.count,
+          percentage: ((r.count / total) * 100).toFixed(2),
+        }));
+
+        res.json(ratio);
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
     //PET CATEGORY COUNT API
     app.get("/pets/category-count", async (req, res) => {
       try {
         const pipeline = [
-         
           { $match: { status: "approved" } },
 
           // . group by petCategory
