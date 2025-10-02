@@ -13,7 +13,7 @@ const stripe = require("stripe")(process.env.STRIPE_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 
-let serviceAccount = require("path/to/serviceAccountKey.json");
+let serviceAccount = require("./firebase-admin-key.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
@@ -45,18 +45,26 @@ async function run() {
     const paymentCollections = db.collection("Payments");
     //DB AND COLLECTION ENDS
     //CUSTOM MIDDLEWARE STARTED
-    const verifyFbToken=(req,res,next)=>{
+    const verifyFbToken=async(req,res,next)=>{
       const authHeaders=req.headers.authorization
       console.log(authHeaders,'this is inside verifyFbToken')
       if(!authHeaders){
-        return res.status(401).json({message:"unauthorized access"})
+        return res.status(401).send({message:"unauthorized access"})
       }
       const token=authHeaders.split(" ")[1]
       if(!token){
-        return res.status(401).json({message:"unauthorized access"})
+        return res.status(401).send({message:"unauthorized access"})
       }
       //verify the token 
-      next()
+      try{
+        const decoded=await admin.auth().verifyIdToken(token)
+        req.decoded=decoded
+          next()
+      }
+      catch(error){
+        return res.status(403).send({message:"Forbidden access"})
+      }
+    
     }
     //CUSTOM MIDDLEWARE ENDS
     //user REALATED API STARTS HERE
