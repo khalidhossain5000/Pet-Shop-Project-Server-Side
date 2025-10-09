@@ -108,19 +108,19 @@ async function run() {
     });
 
     // user role from the db
-    app.get("/users/role/:email", async (req, res) => {
+    app.get("/users/role/:email",verifyFbToken, async (req, res) => {
       const email = req.params.email;
       const user = await usersCollections.findOne({ email });
 
       res.send({ role: user.role || "user" });
     });
     //getting all user info for admin panel
-    app.get("/admin/users", async (req, res) => {
+    app.get("/admin/users",verifyFbToken,verifyAdmin, async (req, res) => {
       const users = await usersCollections.find().toArray();
       res.send(users);
     });
     //make admin api starts here
-    app.patch("/admin/users/:userId/make-admin", async (req, res) => {
+    app.patch("/admin/users/:userId/make-admin",verifyFbToken,verifyAdmin, async (req, res) => {
       const userId = req.params.userId;
       const filter = { _id: new ObjectId(userId) };
       const updatedDoc = {
@@ -133,7 +133,7 @@ async function run() {
     });
 
     //Remove  admin api starts here
-    app.patch("/admin/users/:userId/remove-admin", async (req, res) => {
+    app.patch("/admin/users/:userId/remove-admin",verifyFbToken,verifyAdmin, async (req, res) => {
       const userId = req.params.userId;
       const filter = { _id: new ObjectId(userId) };
       const updatedDoc = {
@@ -145,7 +145,7 @@ async function run() {
       res.send(result);
     });
     // PATCH API using app.patch
-    app.patch("/users/:email", async (req, res) => {
+    app.patch("/users/:email",verifyFbToken, async (req, res) => {
       const email = req.params.email;
       const { name, profilePic } = req.body;
 
@@ -168,14 +168,14 @@ async function run() {
       }
     });
     //delte user
-    app.delete("/admin/users/:userId", async (req, res) => {
+    app.delete("/admin/users/:userId",verifyFbToken,verifyAdmin, async (req, res) => {
       const userId = req.params.userId;
       const filter = { _id: new ObjectId(userId) };
       const result = await usersCollections.deleteOne(filter);
       res.send(result);
     });
     //  products realted api
-    app.post("/add-product", async (req, res) => {
+    app.post("/add-product",verifyFbToken, async (req, res) => {
       const productInfo = req.body;
 
       const result = await productsCollections.insertOne(productInfo);
@@ -193,12 +193,12 @@ async function run() {
       }
     });
 
-    app.get("/products", verifyFbToken,verifyAdmin, async (req, res) => {
+    app.get("/products", verifyFbToken, verifyAdmin, async (req, res) => {
       const products = await productsCollections.find().toArray();
       res.send(products);
     });
 
-    app.delete("/admin/products/:id", async (req, res) => {
+    app.delete("/admin/products/:id",verifyFbToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid product id" });
@@ -209,7 +209,7 @@ async function run() {
     });
 
     //PET RELATED API HERE
-    app.post("/add-pet", async (req, res) => {
+    app.post("/add-pet",verifyFbToken, async (req, res) => {
       const petData = req.body;
       const result = await petCollections.insertOne(petData);
       res.send(result);
@@ -222,7 +222,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/admin/pets", async (req, res) => {
+    app.get("/admin/pets",verifyFbToken, verifyAdmin, async (req, res) => {
       const result = await petCollections.find().toArray();
       res.send(result);
     });
@@ -242,7 +242,7 @@ async function run() {
     });
 
     //pet status approve api
-    app.patch("/admin/pets/:id/approve", async (req, res) => {
+    app.patch("/admin/pets/:id/approve",verifyFbToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
@@ -260,7 +260,7 @@ async function run() {
     });
 
     //pet reject api
-    app.patch("/admin/pets/:id/reject", async (req, res) => {
+    app.patch("/admin/pets/:id/reject",verifyFbToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
@@ -281,8 +281,36 @@ async function run() {
       const result = await petCollections.updateOne(filter, updatedDoc);
       res.send(result);
     });
+    //decrease pet quanity after paymetn success
+    app.patch("/pets/:id",verifyFbToken, async (req, res) => {
+      try {
+        const id = req.params.id;
 
-    app.delete("/admin/pets/:id", async (req, res) => {
+        // find pet
+        const pet = await petCollections.findOne({ _id: new ObjectId(id) });
+
+        if (!pet) {
+          return res.status(404).send({ message: "Pet not found" });
+        }
+
+        if (pet.quantity <= 0) {
+          return res.status(400).send({ message: "Pet already sold" });
+        }
+
+        // quantity কমাও
+        const result = await petCollections.updateOne(
+          { _id: new ObjectId(id) },
+          { $inc: { quantity: -1 } }
+        );
+
+        res.send({ success: true, message: "Pet quantity updated", result });
+      } catch (error) {
+        res.status(500).send({ success: false, message: error.message });
+      }
+    });
+
+    //pet delete api
+    app.delete("/admin/pets/:id",verifyFbToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       if (!ObjectId.isValid(id)) {
         return res.status(400).send({ message: "Invalid pet id" });
@@ -293,7 +321,7 @@ async function run() {
     });
 
     //BREED REALTED API
-    app.post("/add-breeds", async (req, res) => {
+    app.post("/add-breeds",verifyFbToken, verifyAdmin, async (req, res) => {
       const breedData = req.body;
       const result = await breedCollections.insertOne(breedData);
       res.send(result);
@@ -304,7 +332,7 @@ async function run() {
     });
 
     //CART RELATED API STARTS HERE
-    app.post("/carts", async (req, res) => {
+    app.post("/carts",verifyFbToken, async (req, res) => {
       const cartData = req.body;
       const { userEmail, cartItemInfo } = req.body;
 
@@ -317,7 +345,7 @@ async function run() {
       res.send(result);
     });
     //delte login user carts after payment success
-    app.delete("/api/cart/clear/:userEmail", async (req, res) => {
+    app.delete("/api/cart/clear/:userEmail",verifyFbToken, async (req, res) => {
       try {
         const userEmail = req.params.userEmail;
         const result = await cartCollections.deleteMany({ userEmail });
@@ -332,7 +360,7 @@ async function run() {
       }
     });
     //USERS CART ITEM GETTING API
-    app.get("/carts", async (req, res) => {
+    app.get("/carts",verifyFbToken, async (req, res) => {
       try {
         const userEmail = req.query.email;
         if (!userEmail)
@@ -348,7 +376,7 @@ async function run() {
     });
 
     //cart item delte api starts here
-    app.delete("/carts/:email/:petId", async (req, res) => {
+    app.delete("/carts/:email/:petId",verifyFbToken, async (req, res) => {
       try {
         const userEmail = req.params.email;
         const petId = req.params.petId;
@@ -365,7 +393,7 @@ async function run() {
       }
     });
     //STRIPE PAYMENT RELATED ALL API STARTS
-    app.post("/create-payment-intent", async (req, res) => {
+    app.post("/create-payment-intent",verifyFbToken, async (req, res) => {
       try {
         const { amount } = req.body;
         if (!amount)
@@ -384,7 +412,7 @@ async function run() {
       }
     });
     //saving payment info in the db
-    app.post("/payments", async (req, res) => {
+    app.post("/payments",verifyFbToken, async (req, res) => {
       try {
         const paymentData = req.body;
         const result = await paymentCollections.insertOne(paymentData);
@@ -395,12 +423,12 @@ async function run() {
       }
     });
 
-    app.get("/payments/orders", async (req, res) => {
+    app.get("/payments/orders",verifyFbToken, verifyAdmin, async (req, res) => {
       const result = await paymentCollections.find().toArray();
       res.send(result);
     });
     //GETTING LOG IN USER PAYMENT/ORDER DATA
-    app.get("/payments/specific/order", async (req, res) => {
+    app.get("/payments/specific/order",verifyFbToken, async (req, res) => {
       const email = req.query.email;
       console.log("thi sis user email", email);
       if (!email)
@@ -408,7 +436,7 @@ async function run() {
       const result = await paymentCollections.find({ email }).toArray();
       res.send(result);
     });
-    app.get("/payments/order-stats", async (req, res) => {
+    app.get("/payments/order-stats",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         const userEmail = req.query.email;
         if (!userEmail) {
@@ -436,7 +464,7 @@ async function run() {
       }
     });
     //DAY WISE WEEKLY ORDER COUNT
-    app.get("/orders/day-wise-count", async (req, res) => {
+    app.get("/orders/day-wise-count",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         const userEmail = req.query.email;
         if (!userEmail)
@@ -465,7 +493,7 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
-    app.get("/api/orders/status-ratio", async (req, res) => {
+    app.get("/api/orders/status-ratio",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         // Aggregate to get status-wise count
         const result = await paymentCollections
@@ -496,7 +524,7 @@ async function run() {
       }
     });
     //PET CATEGORY COUNT API
-    app.get("/pets/category-count", async (req, res) => {
+    app.get("/pets/category-count",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         const pipeline = [
           { $match: { status: "approved" } },
@@ -523,7 +551,7 @@ async function run() {
     });
 
     // Update Order Status API
-    app.patch("/orders/:id/status", async (req, res) => {
+    app.patch("/orders/:id/status",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         const orderId = req.params.id;
         const { status } = req.body;
@@ -553,7 +581,7 @@ async function run() {
         res.status(500).json({ error: "Internal server error" });
       }
     });
-    app.delete("/orders/:id", async (req, res) => {
+    app.delete("/orders/:id",verifyFbToken, verifyAdmin, async (req, res) => {
       try {
         const id = req.params.id;
 
