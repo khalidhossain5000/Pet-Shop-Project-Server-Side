@@ -108,7 +108,7 @@ async function run() {
     });
 
     // user role from the db
-    app.get("/users/role/:email",verifyFbToken, async (req, res) => {
+    app.get("/users/role/:email", async (req, res) => {
       const email = req.params.email;
       const user = await usersCollections.findOne({ email });
 
@@ -193,7 +193,7 @@ async function run() {
       }
     });
 
-    app.get("/products", verifyFbToken, verifyAdmin, async (req, res) => {
+    app.get("/products", async (req, res) => {
       const products = await productsCollections.find().toArray();
       res.send(products);
     });
@@ -332,7 +332,7 @@ async function run() {
     });
 
     //CART RELATED API STARTS HERE
-    app.post("/carts",verifyFbToken, async (req, res) => {
+    app.post("/carts", async (req, res) => {
       const cartData = req.body;
       const { userEmail, cartItemInfo } = req.body;
 
@@ -345,7 +345,7 @@ async function run() {
       res.send(result);
     });
     //delte login user carts after payment success
-    app.delete("/api/cart/clear/:userEmail",verifyFbToken, async (req, res) => {
+    app.delete("/api/cart/clear/:userEmail", async (req, res) => {
       try {
         const userEmail = req.params.userEmail;
         const result = await cartCollections.deleteMany({ userEmail });
@@ -430,7 +430,7 @@ async function run() {
     //GETTING LOG IN USER PAYMENT/ORDER DATA
     app.get("/payments/specific/order",verifyFbToken, async (req, res) => {
       const email = req.query.email;
-      console.log("thi sis user email", email);
+     
       if (!email)
         return res.status(400).json({ message: "Email query missing" });
       const result = await paymentCollections.find({ email }).toArray();
