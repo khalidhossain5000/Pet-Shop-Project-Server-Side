@@ -5,7 +5,11 @@ let admin = require("firebase-admin");
 const app = express();
 
 // Middleware
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin:['https://fanciful-hummingbird-9bba1a.netlify.app'],
+  credentials:true
+}))
 app.use(express.json());
 
 const stripe = require("stripe")(process.env.STRIPE_KEY);
@@ -376,7 +380,7 @@ async function run() {
     });
 
     //cart item delte api starts here
-    app.delete("/carts/:email/:petId",verifyFbToken, async (req, res) => {
+    app.delete("/carts/:email/:petId", async (req, res) => {
       try {
         const userEmail = req.params.email;
         const petId = req.params.petId;
@@ -396,6 +400,7 @@ async function run() {
     app.post("/create-payment-intent",verifyFbToken, async (req, res) => {
       try {
         const { amount } = req.body;
+        console.log('this is product amount is',amount)
         if (!amount)
           return res.status(400).json({ message: "Amount is required" });
         const paymentIntent = await stripe.paymentIntents.create({
@@ -403,6 +408,7 @@ async function run() {
           currency: "usd",
           payment_method_types: ["card"],
         });
+        console.log(paymentIntent);
         res.send({
           clientSecret: paymentIntent.client_secret,
         });
