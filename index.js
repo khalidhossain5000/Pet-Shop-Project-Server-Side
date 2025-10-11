@@ -7,7 +7,7 @@ const app = express();
 // Middleware
 // app.use(cors());
 app.use(cors({
-  origin:['https://fanciful-hummingbird-9bba1a.netlify.app'],
+  origin:['https://browse-for-pets.netlify.app'],
   credentials:true
 }))
 app.use(express.json());
